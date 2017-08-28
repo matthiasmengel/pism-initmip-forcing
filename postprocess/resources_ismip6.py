@@ -34,7 +34,7 @@ def get_ismip6_vars_dict(file, dim):
     '''
     Returns a dictionary with ISMIP6 Variables
     '''
-        
+
     ismip6_vars = {}
     with open(file, 'r') as f:
         has_header = csv.Sniffer().has_header(f.read())
@@ -53,7 +53,7 @@ def get_ismip6_vars_dict(file, dim):
             do_mask = int(m_list[6])
             if dimension == dim:
                 ismip6_vars[ismip6_name] = ISMIP6Var(ismip6_name, pism_name, units, standard_name, state, do_mask)
-        
+
     return ismip6_vars
 
 
@@ -61,7 +61,7 @@ def adjust_time_axis(icesheet,filename):
     '''
     Adjusts the time axis
     '''
-    
+
     nc = CDF(filename, 'a')
     time = nc.variables['time']
     time_bnds_var = time.bounds
@@ -74,7 +74,7 @@ def adjust_time_axis(icesheet,filename):
       time_bnds[:,0] = new_timeline - 5
       time_bnds[:,1] = new_timeline
       time.units = 'years since 2008-1-1'
-    
+
     elif icesheet=="AIS":
       #time.units = 'years since 2000-1-1'
       #time_bnds.units = 'years since 2000-1-1'
@@ -88,7 +88,7 @@ def make_spatial_vars_ismip6_conforming(filename, ismip6_vars_dict):
     '''
     Make file ISMIP6 conforming
     '''
-    
+
     # Open file
     nc = CDF(filename, 'a')
 
@@ -97,7 +97,7 @@ def make_spatial_vars_ismip6_conforming(filename, ismip6_vars_dict):
     cell_area = cell_area_var[:]
 
     pism_to_ismip6_dict = dict((v.pism_name, k) for k, v in ismip6_vars_dict.iteritems())
-    
+
     for pism_var in nc.variables:
         nc_var = nc.variables[pism_var]
         if pism_var in pism_to_ismip6_dict.keys():
@@ -114,9 +114,9 @@ def make_spatial_vars_ismip6_conforming(filename, ismip6_vars_dict):
                 o_units = cf_units.Unit(i_units) / cf_units.Unit(cell_area_units)
                 nc_var.units = o_units.format()
             if not nc_var.units == ismip6_vars_dict[ismip6_var].units:
-                o_units = ismip6_vars_dict[ismip6_var].units            
+                o_units = ismip6_vars_dict[ismip6_var].units
                 i_units = nc_var.units
-                print('  Converting {pism_var} from {i_units} to {o_units}'.format(pism_var=pism_var, i_units=i_units, o_units=o_units))    
+                print('  Converting {pism_var} from {i_units} to {o_units}'.format(pism_var=pism_var, i_units=i_units, o_units=o_units))
                 i_f = cf_units.Unit(i_units)
                 o_f = cf_units.Unit(o_units)
                 nc_var[:] = i_f.convert(nc_var[:], o_f)
@@ -129,12 +129,12 @@ def make_scalar_vars_ismip6_conforming(filename, ismip6_vars_dict):
     '''
     Make file ISMIP6 conforming
     '''
-    
+
     # Open file
     nc = CDF(filename, 'a')
 
     pism_to_ismip6_dict = dict((v.pism_name, k) for k, v in ismip6_vars_dict.iteritems())
-    
+
     for pism_var in nc.variables:
         nc_var = nc.variables[pism_var]
         if pism_var in pism_to_ismip6_dict.keys():
@@ -145,9 +145,9 @@ def make_scalar_vars_ismip6_conforming(filename, ismip6_vars_dict):
                 nc.renameVariable(pism_var, ismip6_var)
                 nc.sync()
             if not nc_var.units == ismip6_vars_dict[ismip6_var].units:
-                o_units = ismip6_vars_dict[ismip6_var].units            
+                o_units = ismip6_vars_dict[ismip6_var].units
                 i_units = nc_var.units
-                print('  Converting {pism_var} from {i_units} to {o_units}'.format(pism_var=pism_var, i_units=i_units, o_units=o_units))    
+                print('  Converting {pism_var} from {i_units} to {o_units}'.format(pism_var=pism_var, i_units=i_units, o_units=o_units))
                 i_f = cf_units.Unit(i_units)
                 o_f = cf_units.Unit(o_units)
                 nc_var[:] = i_f.convert(nc_var[:], o_f)
@@ -165,8 +165,8 @@ def create_searise_grid(icesheet,filename, grid_spacing, **kwargs):
         fileformat = 'NETCDF4'
     else:
         fileformat = str.upper(kwargs['fileformat'])
-        
-    
+
+
     xdim = 'x'
     ydim = 'y'
 
@@ -231,7 +231,7 @@ def create_searise_grid(icesheet,filename, grid_spacing, **kwargs):
     gc_lat = np.zeros((N, M, grid_corners))
     # array holding lon-component of grid corners
     gc_lon = np.zeros((N, M, grid_corners))
-    
+
     for corner in range(0, grid_corners):
         ## grid_corners in x-direction
         gc_easting[:, corner] = easting + de_vec[corner]
@@ -249,7 +249,7 @@ def create_searise_grid(icesheet,filename, grid_spacing, **kwargs):
 
     nc.createDimension(xdim, size=easting.shape[0])
     nc.createDimension(ydim, size=northing.shape[0])
-    
+
     var = xdim
     var_out = nc.createVariable(var, 'f', dimensions=(xdim))
     var_out.axis = xdim
@@ -292,7 +292,7 @@ def create_searise_grid(icesheet,filename, grid_spacing, **kwargs):
     var_out.units = "degreesE"
     # Assign values to variable 'lon_nds'
     var_out[:] = gc_lon
-        
+
     var = 'lat_bnds'
     # Create variable 'lat_bnds'
     var_out = nc.createVariable(

@@ -7,6 +7,7 @@ import csv
 import cf_units
 import numpy as np
 from pyproj import Proj
+import subprocess
 
 
 class ISMIP6Var(object):
@@ -338,3 +339,34 @@ def create_searise_grid(icesheet,filename, grid_spacing, **kwargs):
     nc.proj4 = projection
     nc.Conventions = 'CF-1.6'
     nc.close()
+
+
+
+def add_projection_info(ncfile):
+
+    # if 'mapping' not in pism_vars_av:
+    print "  Add 'mapping' information"
+    nc = CDF(ncfile, 'a')
+    mapping = nc.createVariable("mapping", 'c')
+    mapping.ellipsoid = "WGS84"
+    mapping.false_easting = 0.
+    mapping.false_northing = 0.
+    mapping.grid_mapping_name = "polar_stereographic"
+    mapping.latitude_of_projection_origin = -90.
+    mapping.standard_parallel = -71.
+    mapping.straight_vertical_longitude_from_pole = 0.
+    nc.close()
+
+def add_base_as_variable(ncfile):
+
+    print "  Add variable 'base + usurf - thk'"
+    ncap2_cmd = ['ncap2', '-O', '-s',
+                    'base = usurf - thk',
+                    ncfile,
+                    ncfile]
+    subprocess.call(ncap2_cmd)
+    ncatted_cmd = ["ncatted", '-O',
+                    "-a", '''long_name,base,o,c,ice lower surface elevation''',
+                    "-a", '''standard_name,base,o,c,base_altitude''',
+                    ncfile]
+    subprocess.check_call(ncatted_cmd)

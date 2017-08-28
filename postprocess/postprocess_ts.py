@@ -151,7 +151,7 @@ if __name__ == "__main__":
     nc.Conventions = 'CF-1.6'
     nc.institution = 'Potsdam Institute for Climate Impact Research (PIK), Germany'
     nc.contact = 'matthias.mengel@pik-potsdam.de and torsten.albrecht@pik-potsdam.de'
-    nc.source = 'PISM (https://github.com/talbrecht/pism_pik; branch: pik/cavity_dev; commit: 8c33b7e8bc1c3cb4e'
+    nc.source = 'PISM; https://github.com/talbrecht/pism_pik; branch: pik/cavity_dev; commit: 8c33b7e8bc1c3cb4e'
     #del nc.variables["pism_config"]
     #del nc.variables["run_stats"]
     #nc.variables["pism_config"] = None

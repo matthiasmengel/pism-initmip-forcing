@@ -41,6 +41,8 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
     if not os.path.exists(initmip_out_dir):
         os.makedirs(initmip_out_dir)
 
+    infile_ismip6 = os.path.join(output_dir,"timeseries_ismip6_"+exp+".nc")
+    initmipvars_file = os.path.join(output_dir,"timeseries_ismip6vars_"+exp+".nc")
     out_file = os.path.join(initmip_out_dir, out_filename)
 
     try:
@@ -48,7 +50,6 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
     except OSError:
         pass
 
-    infile_ismip6 = os.path.join(output_dir,"timeseries_ismip6_"+exp+".nc")
 
     print "Prepare PISM output for ismip6 compatibility and save as '{}'".format(infile_ismip6)
     ncks_cmd = ['ncks', '-O', '-4', '-L', '3',
@@ -64,18 +65,22 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
             infile_ismip6]
     sub.call(ncap2_cmd)
 
+
     # Check if request variables are present
     nc = CDF(infile_ismip6, 'r')
     for m_var in pism_copy_vars:
         if m_var not in nc.variables:
             print("Requested variable '{}' missing".format(m_var))
-
     nc.close()
+
     print(' Transfer pism_copy_vars to {}'.format(out_file))
-    cmd = ['ncks', '-O',
-           '-v', '{}'.format(','.join(pism_copy_vars)),
-           infile_ismip6, out_file]
-    sub.call(cmd)
+    cmd = 'ncks -O -v '+','.join(pism_copy_vars)+" "+infile_ismip6+" "+initmipvars_file
+    sub.check_call(cmd, shell=True)
+
+    # adjust time axis: shift by two years (PISM issue: wrong time setting), and select
+    # the INITMIP 100 yr forcing period,
+    cmd = "module load cdo && cdo -O selyear,2000/2100 -shifttime,-2year "+initmipvars_file+" "+out_file
+    sub.check_call(cmd, shell=True)
 
     print "  Convert added variables to single precision"
     for m_var in pism_copy_vars:
@@ -91,12 +96,7 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
                    out_file]
        sub.call(ncatted_cmd)
 
-
-    # Adjust the time axis
-    # print('Adjusting time axis')
-    # adjust_time_axis(IS,out_file)
     resources_ismip6.make_scalar_vars_ismip6_conforming(out_file, ismip6_vars_dict)
-
 
     # Update attributes
     print('Adjusting attributes')

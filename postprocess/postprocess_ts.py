@@ -1,101 +1,52 @@
 #!/usr/bin/env python
 # Copyright (C) 2016 Andy Aschwanden (https://github.com/pism/pism-gris/blob/master/initMIP)
-# Modified by Torsten Albrecht for initMIP Antarctica 2017
+# Modified by Matthias Mengel and Torsten Albrecht for initMIP Antarctica 2017
 
 import os
 import numpy as np
 import csv
-# import cf_units
-try:
-    import subprocess32 as sub
-except:
-    import subprocess as sub
-
-from argparse import ArgumentParser
+import subprocess as sub
 from netCDF4 import Dataset as CDF
+import resources_ismip6; reload(resources_ismip6)
+import config; reload(config)
 
-# import sys
-# sys.path.append('resources/')
-from resources_ismip6 import *
-
-# ## this hack is needed to import config.py from the project root
-# project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# if project_root not in sys.path: sys.path.append(project_root)
-# import config as cf; reload(cf)
-
-# dataset = "initmip"
-# data_path = os.path.join(cf.output_data_path, dataset)
-# resolution = cf.resolution
-
-working_dir = "/p/tmp/mengel/pism_out/"
-experiment = "pismpik_040_initmip08kmforcing_1263c"
-
-experiment_dir = os.path.join(working_dir, experiment)
+experiment_dir = os.path.join(config.working_dir, config.experiment)
 output_dir = os.path.join(experiment_dir,"postprocessed")
-# # Set up the option parser
-# parser = ArgumentParser()
-# parser.description = "Script to make ISMIP6-conforming scalar time series."
-# parser.add_argument("EXP_FILE", nargs=1)
-# parser.add_argument("-e", "--experiment", dest="experiment",
-#                     choices=['ctrl', 'asmb', 'abmb'],
-#                     help="Output size type", default='ctrl')
-# parser.add_argument('--id', dest="id", type=str,
-#                     help='''Experiemnt ID''', default='1')
-# parser.add_argument("-t", "--target_resolution", dest="target_resolution", type=int,
-#                     choices=[1000, 8000, 16000],
-#                     help="Horizontal grid resolution", default=8000)
 
-# options = parser.parse_args()
-# experiment = options.experiment
-infile = os.path.join(experiment_dir,"timeseries_smb.nc")
-target_resolution = 8000
-
-# Need to get grid resolution from file
-nc = CDF(infile, 'r')
-pism_grid_dx = int(round(nc.variables['run_stats'].grid_dx_meters))
-nc.close()
-PISM_GRID_RES_ID = str(pism_grid_dx / 1000)
-TARGET_GRID_RES_ID = str(target_resolution / 1000)
-ID = "1"
-
-IS = 'AIS'
-GROUP = 'PIK'
-#MODEL = 'PISM' + '_' + PISM_GRID_RES_ID + 'km_' + ID
-MODEL = 'PISM' + ID + 'EQUI'
-EXP = "asmb"
-TYPE = '_'.join([EXP, str(TARGET_GRID_RES_ID).zfill(2)])
-INIT = '_'.join(['init', str(TARGET_GRID_RES_ID).zfill(2)])
-project = '{IS}_{GROUP}_{MODEL}'.format(IS=IS, GROUP=GROUP, MODEL=MODEL)
-
-pism_stats_vars = ['pism_config','run_stats']
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 
-ismip6_vars_dict = get_ismip6_vars_dict('ismip6vars.csv', 1)
+ismip6_vars_dict = resources_ismip6.get_ismip6_vars_dict('ismip6vars.csv', 1)
 ismip6_to_pism_dict = dict((k, v.pism_name) for k, v in ismip6_vars_dict.iteritems())
 pism_to_ismip6_dict = dict((v.pism_name, k) for k, v in ismip6_vars_dict.iteritems())
 
 pism_copy_vars = [x for x in (ismip6_to_pism_dict.values())] #+ pism_stats_vars)]
 
-if __name__ == "__main__":
 
-    # project_dir = os.path.join(data_path, GROUP, MODEL, TYPE)
-    # if not os.path.exists(project_dir):
-    #     os.makedirs(project_dir)
+for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
 
+    print "###### processsing timeseries of experiment", exp
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    infile = os.path.join(experiment_dir,"timeseries"+config.ts_naming[exp]+".nc")
 
-    out_filename = 'scalar_{project}_{exp}.nc'.format(project=project, exp=EXP)
-    out_file = os.path.join(output_dir, out_filename)
+    out_filename = 'scalar_{project}_{exp}.nc'.format(
+        project=config.project, exp=config.initmip_naming[exp])
+
+    initmip_out_dir = os.path.join(output_dir,
+        config.initmip_naming[exp]+"_"+config.resolution)
+
+    if not os.path.exists(initmip_out_dir):
+        os.makedirs(initmip_out_dir)
+
+    out_file = os.path.join(initmip_out_dir, out_filename)
+
     try:
         os.remove(out_file)
     except OSError:
         pass
 
-
-    # infile_ismip6=infile.replace('.nc','_ismip6.nc')
-    infile_ismip6 = os.path.join(output_dir,"timeseries_ismip6_smb.nc")
+    infile_ismip6 = os.path.join(output_dir,"timeseries_ismip6_"+exp+".nc")
 
     print "Prepare PISM output for ismip6 compatibility and save as '{}'".format(infile_ismip6)
     ncks_cmd = ['ncks', '-O', '-4', '-L', '3',
@@ -142,7 +93,7 @@ if __name__ == "__main__":
     # Adjust the time axis
     # print('Adjusting time axis')
     # adjust_time_axis(IS,out_file)
-    make_scalar_vars_ismip6_conforming(out_file, ismip6_vars_dict)
+    resources_ismip6.make_scalar_vars_ismip6_conforming(out_file, ismip6_vars_dict)
 
 
     # Update attributes

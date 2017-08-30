@@ -15,8 +15,6 @@ import config; reload(config)
 experiment_dir = os.path.join(config.working_dir, config.experiment)
 output_dir = os.path.join(experiment_dir,"postprocessed")
 
-initmip_naming = {"smb_bmelt":"asbm_abmb","smb":"asmb","bmelt":"abmb","ctrl":"ctrl"}
-
 ## get the variables needed for InitMIP
 ismip6_vars_dict = resources_ismip6.get_ismip6_vars_dict('ismip6vars.csv', 2)
 
@@ -39,7 +37,7 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
     infile = os.path.join(output_dir,"extra_"+exp+".nc")
 
     single_variable_dir = os.path.join(output_dir,
-        initmip_naming[exp]+"_"+config.resolution)
+        config.initmip_naming[exp]+"_"+config.resolution)
 
     if not os.path.exists(single_variable_dir):
         os.makedirs(single_variable_dir)
@@ -88,7 +86,7 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
     for m_var in ismip6_vars_dict.keys():
 
         final_file = os.path.join(single_variable_dir,
-            m_var+"_"+config.project+"_"+initmip_naming[exp]+".nc")
+            m_var+"_"+config.project+"_"+config.initmip_naming[exp]+".nc")
 
         print('Finalizing variable {}'.format(m_var))
         # Generate file

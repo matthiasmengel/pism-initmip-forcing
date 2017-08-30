@@ -23,6 +23,8 @@ pism_to_ismip6_dict = dict((v.pism_name, k) for k, v in ismip6_vars_dict.iterite
 
 pism_copy_vars = [x for x in (ismip6_to_pism_dict.values())] #+ pism_stats_vars)]
 
+# do not process tendligroundf, PISM does not have it as diagnostic
+pism_copy_vars.remove("tendligroundf")
 
 for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
 
@@ -55,9 +57,9 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
     sub.call(ncks_cmd)
 
     #"total over ice domain of top surface ice mass flux = sub_shelf_ice_flux + grounded_basal_ice_flux" ;
-    print "  Add variable 'tendlibmassbf' and 'tendligroundf'"
+    print "  Add variable 'tendlibmassbf'"
     ncap2_cmd = ['ncap2', '-O', '-s',
-            'tendlibmassbf = sub_shelf_ice_flux + grounded_basal_ice_flux; tendligroundf = (-2e9 * discharge_flux/discharge_flux);',
+            'tendlibmassbf = sub_shelf_ice_flux + grounded_basal_ice_flux',
             infile_ismip6,
             infile_ismip6]
     sub.call(ncap2_cmd)

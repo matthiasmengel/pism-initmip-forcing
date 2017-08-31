@@ -42,11 +42,12 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
     if not os.path.exists(single_variable_dir):
         os.makedirs(single_variable_dir)
 
-    tmp_file = os.path.join(output_dir, 'tmp.nc')
-    try:
-        os.remove(tmp_file)
-    except OSError:
-        pass
+    tmp_file1 = os.path.join(output_dir, 'tmp1.nc')
+    tmp_file2 = os.path.join(output_dir, 'tmp2.nc')
+
+    for f in [tmp_file1, tmp_file2]:
+        try: os.remove(f)
+        except OSError: pass
 
     # Check if request variables are present
     nc = CDF(infile, 'r')
@@ -55,19 +56,27 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
             print("Requested variable '{}' missing".format(m_var))
     nc.close()
 
-    print('Extract initmip variables from {} to {}'.format(infile, tmp_file))
-    cmd = 'ncks -O -4 -L3 -d time,1, -v '+'{}'.format(','.join(pism_copy_vars))+' '+\
-           infile+" "+tmp_file
+    print('Extract initmip variables from {} to {}'.format(infile, tmp_file1))
+    # also delete last two and first time step.
+    cmd = 'ncks -O -4 -L3 -d time,1,-3 -v '+'{}'.format(','.join(pism_copy_vars))+' '+\
+           infile+" "+tmp_file1
     print cmd
     sub.check_call(cmd,shell=True)
 
+    # adjust time axis: shift by two years (PISM issue: wrong time setting)
+    cmd = "module load cdo && cdo shifttime,-2year "+tmp_file1+" "+tmp_file2
+    sub.check_call(cmd, shell=True)
 
-    resources_ismip6.add_base_as_variable(tmp_file)
-    resources_ismip6.add_projection_info(tmp_file)
+    #add x and y as cdo deleted them
+    cmd = 'ncks -A -v x,y '+tmp_file1+" "+tmp_file2
+    sub.check_call(cmd, shell=True)
+
+    resources_ismip6.add_base_as_variable(tmp_file2)
+    resources_ismip6.add_projection_info(tmp_file2)
 
 
     # Make the file ISMIP6 conforming
-    resources_ismip6.make_spatial_vars_ismip6_conforming(tmp_file, ismip6_vars_dict)
+    resources_ismip6.make_spatial_vars_ismip6_conforming(tmp_file2, ismip6_vars_dict)
     ncatted_cmd = ["ncatted",
                    "-a", '''bounds,lat,o,c,lat_bnds''',
                    "-a", '''bounds,lon,o,c,lon_bnds''',
@@ -75,7 +84,7 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
                    "-a", '''coordinates,lon_bnds,d,,''',
                    "-a", '''history,global,d,,''',
                    "-a", '''history_of_appended_files,global,d,,''',
-                   tmp_file]
+                   tmp_file2]
     sub.call(ncatted_cmd)
 
     # Adjust the time axis
@@ -94,7 +103,7 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
         ncks_cmd = ['ncks', '-O', '-4', '-L', '3',
                     '-v', m_var ,
                     #'-v', ','.join([m_var,'lat','lon', 'lat_bnds', 'lon_bnds']),
-                    tmp_file,
+                    tmp_file2,
                     final_file]
         sub.call(ncks_cmd)
 
@@ -109,7 +118,7 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
             print('  Mask ice free areas')
             # add mask variable
             cmd = ['ncks', '-A', '-v', '{var}'.format(var=config.mask_var),
-                        tmp_file,
+                        tmp_file2,
                         final_file]
 
             sub.call(cmd)
@@ -147,17 +156,19 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
         sub.call(rm_cmd)
 
 
-        float_list=['x', 'y', 'time', 'time_bnds', 'time_bounds']
-        #ncap2_cmd = 'ncap2 -O -s "x=float(x);y=float(y);time=float(time);" ' #time_bnds=float(time_bnds);" '
-        for var in float_list:
-          ncap2_cmd = 'ncap2 -O -s "{}=float({});" '.format(var,var)
-          ncap2_cmd += final_file+' '+final_file
-          #try:
-          if var in pism_vars_ff:
-            sub.check_call(ncap2_cmd,shell=True)
-          else:
-          #except:
-            print "  "+var+" is not in final file"
+        # float_list=['x', 'y', 'time', 'time_bnds', 'time_bounds']
+        ncap2_cmd = 'ncap2 -O -s "x=float(x);y=float(y)" '
+        ncap2_cmd += final_file+' '+final_file
+        sub.check_call(ncap2_cmd,shell=True)
+        # for var in float_list:
+        #     ncap2_cmd = 'ncap2 -O -s "{}=float({});" '.format(var,var)
+        #     ncap2_cmd += final_file+' '+final_file
+        #     #try:
+        #     if var in pism_vars_ff:
+        #         sub.check_call(ncap2_cmd,shell=True)
+        #     else:
+        #     #except:
+        #       print "  "+var+" is not in final file"
 
         nc = CDF(final_file, 'a')
         # try:
@@ -191,13 +202,3 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
         sub.call(ncatted_cmd)
 
         print('  Done finalizing variable {}'.format(m_var))
-
-        # if EXP in ('ctrl'):
-        #     init_file = '{}/{}_{}_{}.nc'.format(init_dir, m_var, project, 'init')
-        #     print('  Copying time 0 to file {}'.format(init_file))
-        #     ncks_cmd = ['ncks', '-O', '-4', '-L', '3',
-        #                 '-d', 'time,0',
-        #                 '-v', m_var,
-        #                 final_file,
-        #                 init_file]
-        #     sub.call(ncks_cmd)

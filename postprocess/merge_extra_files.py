@@ -2,11 +2,9 @@
 import os
 import glob
 import subprocess
+import config; reload(config)
 
-working_dir = "/p/tmp/mengel/pism_out/"
-experiment = "pismpik_040_initmip08kmforcing_1263d"
-
-experiment_dir = os.path.join(working_dir, experiment)
+experiment_dir = os.path.join(config.working_dir, config.experiment)
 output_dir = os.path.join(experiment_dir,"postprocessed")
 
 if not os.path.exists(output_dir):
@@ -22,7 +20,7 @@ for exp in ["_","_smb_","_bmelt_","_ctrl_"]:
     cmd = "cdo -O -f nc4c -v mergetime "+" ".join(files_to_merge)+" "+merged_file
     print cmd
     subprocess.check_call(cmd,shell=True)
-    #add x and y and mapping
+    #add x and y
     cmd = 'ncks -A -v x,y '+files_to_merge[0]+" "+merged_file
     subprocess.check_call(cmd, shell=True)
 

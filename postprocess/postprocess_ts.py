@@ -79,7 +79,8 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
 
     # adjust time axis: shift by two years (PISM issue: wrong time setting), and select
     # the INITMIP 100 yr forcing period,
-    cmd = "module load cdo && cdo -O selyear,2000/2100 -shifttime,-2year "+initmipvars_file+" "+out_file
+    cmd = "module load cdo && cdo -O setreftime,20000101,000000,seconds -selyear,2000/2100 -shifttime,-2year "+\
+            initmipvars_file+" "+out_file
     sub.check_call(cmd, shell=True)
 
     print "  Convert added variables to single precision"

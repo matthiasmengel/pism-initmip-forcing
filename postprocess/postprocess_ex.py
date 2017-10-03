@@ -64,7 +64,7 @@ for exp in ["smb_bmelt","smb","bmelt","ctrl"]:
     sub.check_call(cmd,shell=True)
 
     # adjust time axis: shift by two years (PISM issue: wrong time setting)
-    cmd = "module load cdo && cdo shifttime,-2year "+tmp_file1+" "+tmp_file2
+    cmd = "module load cdo && cdo setreftime,20000101,000000,seconds -shifttime,-2year "+tmp_file1+" "+tmp_file2
     sub.check_call(cmd, shell=True)
 
     #add x and y as cdo deleted them
